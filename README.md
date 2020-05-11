@@ -1,6 +1,6 @@
 # INA - 2019/2020 - Seminar
 
-Authors: [Maj Šavli](@saullas), [Matjaž Mav](@matjazmav)
+Authors: [Maj Šavli](https://github.com/saullas), [Matjaž Mav](https://github.com/matjazmav)
 
 ---
 
