@@ -3,9 +3,13 @@ import requests
 import networkx as nx
 import zipfile
 import pickle
+import glob
+from typing import List
 
-from bs4 import BeautifulSoup
+import bs4
+
 import src.scraper.metadata
+import src.scraper.graph_parsers
 
 BASE_URL = 'http://networkrepository.com'
 TMP_DIR = '.tmp'
@@ -13,6 +17,11 @@ TMP_DIR = '.tmp'
 if not os.path.exists(TMP_DIR):
   os.mkdir(TMP_DIR)
 
+
+def resolve_graph_file(content: List[str]) -> str:
+  content = list(filter(src.scraper.graph_parsers.parser_exists, content))
+  if len(content) != 1: return None
+  return content[0]
 
 def to_float(string):
   if string == '-' or not string:
@@ -42,9 +51,9 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
   if res.status_code >= 400:
     raise Exception(f'Failed to load page "{url}" with status {res.status_code}')
 
-  parser = BeautifulSoup(res.text, 'html.parser')
+  parser = bs4.BeautifulSoup(res.text, 'html.parser')
 
-  download_el = parser.find('a', {'id': name, 'class': 'btn-nr-primary'})
+  download_el = parser.find('i', {'class': 'icon-cloud-download icon-large'}).parent
   if not download_el:
     raise Exception(f'Download link not found for the network "{name}".')
 
@@ -74,8 +83,8 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
 
 def get_data(metadata: src.scraper.metadata.Metadata, force: bool = False) -> nx.Graph:
   zip_cache_path = os.path.join(TMP_DIR, metadata.data_url.split('/')[-1])
-  cache_path = os.path.join(TMP_DIR, f'{metadata.name}.edges')
-  
+  cache_path = resolve_graph_file(glob.glob(os.path.join(TMP_DIR, f'{metadata.name}.*')))
+
   # Download zip file
   if not os.path.exists(zip_cache_path) or force:
     print(f'Downloading the network "{metadata.name}" [. = 1MB]: ', end='', flush=True)
@@ -88,14 +97,17 @@ def get_data(metadata: src.scraper.metadata.Metadata, force: bool = False) -> nx
         fd.write(chunk)
     print()
 
-  # Extract edges
-  if not os.path.exists(cache_path) or force:
+  # Extract graph file
+  if not cache_path or force:
     print('Extracting *.edges file...')
     with zipfile.ZipFile(zip_cache_path) as zfd:
-      zfd.extract(f'{metadata.name}.edges', path=TMP_DIR)
+      graph_file = resolve_graph_file(zfd.namelist())
+      if not graph_file:
+        raise Exception(f'Failed to resolve graph file for the network "{metadata.name}"')
+      zfd.extract(f'{graph_file}', path=TMP_DIR)
+      cache_path = os.path.join(TMP_DIR, f'{metadata.name}{os.path.splitext(graph_file)[1]}')
+      os.rename(os.path.join(TMP_DIR, os.path.basename(graph_file)), cache_path)
 
-  # Parse edge list
+  # Parse graph file
   print(f'Parsing graph from "{cache_path}"...')
-  if metadata.metadata['Edge weights'] == 'Weighted':
-    return nx.read_weighted_edgelist(cache_path)
-  return nx.read_edgelist(cache_path)
+  return src.scraper.graph_parsers.GRAPH_PARSERS[os.path.splitext(cache_path)[1]](cache_path)

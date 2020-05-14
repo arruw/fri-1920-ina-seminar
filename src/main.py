@@ -6,4 +6,4 @@ def main(name):
   print('Done.')
 
 if __name__ == "__main__":
-  main('bio-CE-CX')
+  main('bn-mouse-kasthuri-graph-v4')
