@@ -16,5 +16,8 @@
     "**/node_modules/**": true,
     "**/.hg/store/**": true,
     "scraping/**": true,
+    ".tmp/**": true,
+    ".env/**": true,
+    "**/__pycache__/**": true,
   }
 }
