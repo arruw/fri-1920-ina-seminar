@@ -26,7 +26,12 @@ class Metadata():
   
   def __getstate__(self):
     """Return state values to be pickled"""
-    return (self.name, self.metadata, self.statistics, self.data_url)
+    return {
+      'name': self.name,
+      'metadata': self.metadata,
+      'statistics': self.statistics,
+      'data_url': self.data_url
+    }
 
   def __setstate__(self, state):
     """Restore state from the unpickled state values"""
