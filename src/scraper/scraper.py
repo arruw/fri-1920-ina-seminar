@@ -99,7 +99,7 @@ def get_data(metadata: src.scraper.metadata.Metadata, force: bool = False) -> nx
 
   # Extract graph file
   if not cache_path or force:
-    print('Extracting *.edges file...')
+    print('Extracting graph file...')
     with zipfile.ZipFile(zip_cache_path) as zfd:
       graph_file = resolve_graph_file(zfd.namelist())
       if not graph_file:
