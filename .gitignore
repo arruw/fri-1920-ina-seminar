@@ -140,4 +140,3 @@ dmypy.json
 
 .env/*
 .tmp/*
-!.tmp/.gitkeep

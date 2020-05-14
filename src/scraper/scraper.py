@@ -10,6 +10,10 @@ import src.scraper.metadata
 BASE_URL = 'http://networkrepository.com'
 TMP_DIR = '.tmp'
 
+if not os.path.exists(TMP_DIR):
+  os.mkdir(TMP_DIR)
+
+
 def to_float(string):
   if string == '-' or not string:
     return None
