@@ -48,10 +48,10 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
   if not download_el:
     raise Exception(f'Download link not found for the network "{name}".')
 
+  metadata = dict()
   metadata_el = parser.find('table', {'summary': 'Dataset metadata'})
-  if not metadata_el:
-    raise Exception(f'Metadata container not found for the network "{name}"".')
-  metadata = dict(map(lambda tr: (tr.contents[0].text, tr.contents[1].text), metadata_el.findAll('tr')))
+  if metadata_el:
+    metadata = dict(map(lambda tr: (tr.contents[0].text, tr.contents[1].text), metadata_el.findAll('tr')))
 
   statistics_el = parser.find('table', {'summary': 'Network data statistics'})
   if not statistics_el:
