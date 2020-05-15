@@ -1,5 +1,8 @@
 {
   "python.pythonPath": ".env/bin/python",
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "./"
+  },
   "editor.tabSize": 2,
   "editor.wordWrap": "on",
   "files.exclude": {
@@ -15,7 +18,6 @@
     "**/.git/subtree-cache/**": true,
     "**/node_modules/**": true,
     "**/.hg/store/**": true,
-    "scraping/**": true,
     ".tmp/**": true,
     ".env/**": true,
     "**/__pycache__/**": true,

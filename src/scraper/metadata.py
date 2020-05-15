@@ -7,35 +7,34 @@ class Metadata():
 
   def __init__(self,
     name: str,
+    category: str,
     metadata: dict,
     statistics: dict,
     data_url: str,
     ):
     
     self.name = name
+    self.category = category
     self.metadata = metadata
     self.statistics = statistics
     self.data_url = data_url
 
-  _graph: nx.Graph = None
-  def get_graph(self, force: bool = False) -> nx.Graph:
-    """Get Networx graph object"""
-    if not self._graph:
-      self._graph = src.scraper.scraper.get_data(self, force)
-    return self._graph
-  
+
   def __getstate__(self):
     """Return state values to be pickled"""
     return {
       'name': self.name,
+      'category': self.category,
       'metadata': self.metadata,
       'statistics': self.statistics,
       'data_url': self.data_url
     }
 
+
   def __setstate__(self, state):
     """Restore state from the unpickled state values"""
     self.name = state['name']
+    self.category = state['category']
     self.metadata = state['metadata']
     self.statistics = state['statistics']
     self.data_url = state['data_url']

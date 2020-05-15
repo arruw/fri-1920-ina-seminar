@@ -1,9 +1,9 @@
 import argparse
-from src.scraper.scraper import get_metadata, get_data
+from src.scraper.scraper import get_metadata, get_graph
 
 def main(network: str):
   meta = get_metadata(network)
-  graph = meta.get_graph()
+  get_graph(meta)
   print('Done.')
 
 if __name__ == "__main__":

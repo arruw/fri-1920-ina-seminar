@@ -8,36 +8,81 @@ from typing import List
 
 import bs4
 
-import src.scraper.metadata
-import src.scraper.graph_parsers
+from src.scraper.metadata import Metadata
+from src.scraper.graph_parsers import read_edges, read_mtx
 
-BASE_URL = 'http://networkrepository.com'
-TMP_DIR = '.tmp'
+_BASE_URL = 'http://networkrepository.com'
 
-if not os.path.exists(TMP_DIR):
-  os.mkdir(TMP_DIR)
+_TMP_DIR = '.tmp'
+if not os.path.exists(_TMP_DIR):
+  os.mkdir(_TMP_DIR)
+
+_VALUE_TYPES = {
+  'Nodes': int,
+  'Edges': int,
+  'Density': float,
+  'Maximum degree': int,
+  'Minimum degree': int,
+  'Average degree': int,
+  'Assortativity': float,
+  'Number of triangles': int,
+  'Average number of triangles': int,
+  'Maximum number of triangles': int,
+  'Average clustering coefficient': float,
+  'Fraction of closed triangles': float,
+  'Maximum k-core': int,
+  'Lower bound of Maximum Clique': int,
+}
+
+_SUFFIXES = {
+  'K': 1e3, # kilo
+  'M': 1e6, # mega/million
+  'G': 1e9, # giga
+  'B': 1e9, # billion
+  'T': 1e12,# tera
+}
+
+_NAN = {
+  'NAN',
+  None,
+  '-',
+  ''
+}
+
+_GRAPH_PARSERS = {
+  '.edges': read_edges,
+  '.mtx': read_mtx,
+}
+
+def _graph_parser_exists(file_path: str) -> bool:
+  """Check if graph parser exists"""
+  _, ext = os.path.splitext(file_path)
+  return ext.lower() in _GRAPH_PARSERS.keys() 
 
 
-def resolve_graph_file(content: List[str]) -> str:
-  content = list(filter(src.scraper.graph_parsers.parser_exists, content))
+def _resolve_graph_file(content: List[str]) -> str:
+  """Resolve graph file"""
+  content = list(filter(_graph_parser_exists, content))
   if len(content) != 1: return None
   return content[0]
 
-def to_float(string):
-  if string == '-' or not string:
-    return None
-  elif string[-1] == 'K':
-    return float(string[:-1]) * 1000
-  elif string[-1] == 'M':
-    return float(string[:-1]) * 1000000
-  elif string[-1] == 'B':
-    return float(string[:-1]) * 1000000000
-  else:
-    return float(string)
+
+def _convert(key: str, value: str):
+  """Convert raw values"""
+  if value.upper() in _NAN:
+    return (key, None)
+  elif key in _VALUE_TYPES:
+    if value[-1] in _SUFFIXES:
+      return (key, _VALUE_TYPES[key](float(value[:-1]) * _SUFFIXES[value[-1]]))
+    else:
+      return (key, _VALUE_TYPES[key](value))
+  
+  return (key, value)
 
 
-def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadata:
-  cache_path = os.path.join(TMP_DIR, f'{name}.metadata')
+def get_metadata(name: str, force: bool = False) -> Metadata:
+  """Get graph metadata"""
+  cache_path = os.path.join(_TMP_DIR, f'{name}.metadata')
 
   # Load metadata from cache
   if os.path.exists(cache_path) and not force:
@@ -46,7 +91,7 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
 
   # Download metadata
   print(f'Downloading metadata...')
-  url = f'{BASE_URL}/{name}.php'
+  url = f'{_BASE_URL}/{name}.php'
   res = requests.get(url)
   if res.status_code >= 400:
     raise Exception(f'Failed to load page "{url}" with status {res.status_code}')
@@ -56,6 +101,11 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
   download_el = parser.find('i', {'class': 'icon-cloud-download icon-large'}).parent
   if not download_el:
     raise Exception(f'Download link not found for the network "{name}".')
+  
+  category_el = parser.find('a', {'summary': 'network data category'})
+  if not category_el:
+    raise Exception(f'Category not found for the network "{name}".')
+  category = category_el.text
 
   metadata = dict()
   metadata_el = parser.find('table', {'summary': 'Dataset metadata'})
@@ -65,10 +115,11 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
   statistics_el = parser.find('table', {'summary': 'Network data statistics'})
   if not statistics_el:
     raise Exception(f'Statistics container not found for the network "{name}"".')
-  statistics = dict(map(lambda tr: (tr.contents[0].text, to_float(tr.contents[1].text)), statistics_el.findAll('tr')))
+  statistics = dict(map(lambda tr: _convert(tr.contents[0].text, tr.contents[1].text), statistics_el.findAll('tr')))
 
-  ret = src.scraper.metadata.Metadata(
+  ret = Metadata(
     name=name,
+    category = category,
     metadata = metadata,
     statistics = statistics,
     data_url=download_el.attrs['href']
@@ -81,12 +132,13 @@ def get_metadata(name: str, force: bool = False) -> src.scraper.metadata.Metadat
   return ret
 
 
-def get_data(metadata: src.scraper.metadata.Metadata, force: bool = False) -> nx.Graph:
-  zip_cache_path = os.path.join(TMP_DIR, metadata.data_url.split('/')[-1])
-  cache_path = resolve_graph_file(glob.glob(os.path.join(TMP_DIR, f'{metadata.name}.*')))
+def get_graph(metadata: Metadata, force: bool = False) -> nx.Graph:
+  """Get graph"""
+  zip_cache_path = os.path.join(_TMP_DIR, metadata.data_url.split('/')[-1])
+  cache_path = _resolve_graph_file(glob.glob(os.path.join(_TMP_DIR, f'{metadata.name}.*')))
 
   # Download zip file
-  if not os.path.exists(zip_cache_path) or force:
+  if not cache_path or force:
     print(f'Downloading the network "{metadata.name}" [. = 1MB]: ', end='', flush=True)
     res = requests.get(metadata.data_url, stream=True)
     if res.status_code >= 400:
@@ -97,17 +149,19 @@ def get_data(metadata: src.scraper.metadata.Metadata, force: bool = False) -> nx
         fd.write(chunk)
     print()
 
-  # Extract graph file
-  if not cache_path or force:
+    # Extract graph file
     print('Extracting graph file...')
     with zipfile.ZipFile(zip_cache_path) as zfd:
-      graph_file = resolve_graph_file(zfd.namelist())
+      graph_file = _resolve_graph_file(zfd.namelist())
       if not graph_file:
         raise Exception(f'Failed to resolve graph file for the network "{metadata.name}"')
-      zfd.extract(f'{graph_file}', path=TMP_DIR)
-      cache_path = os.path.join(TMP_DIR, f'{metadata.name}{os.path.splitext(graph_file)[1]}')
-      os.rename(os.path.join(TMP_DIR, os.path.basename(graph_file)), cache_path)
+      zfd.extract(f'{graph_file}', path=_TMP_DIR)
+      cache_path = os.path.join(_TMP_DIR, f'{metadata.name}{os.path.splitext(graph_file)[1]}')
+      os.rename(os.path.join(_TMP_DIR, os.path.basename(graph_file)), cache_path)
+    
+    # Cleanup
+    os.remove(zip_cache_path)
 
   # Parse graph file
   print(f'Parsing graph from "{cache_path}"...')
-  return src.scraper.graph_parsers.GRAPH_PARSERS[os.path.splitext(cache_path)[1]](cache_path)
+  return _GRAPH_PARSERS[os.path.splitext(cache_path)[1]](cache_path)

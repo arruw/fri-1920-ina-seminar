@@ -1,9 +1,9 @@
-from src.scraper.scraper import get_metadata, get_data
+from src.scraper.scraper import get_metadata, get_graph
 
 def main(name):
   meta = get_metadata(name)
-  graph = meta.get_graph()
+  graph = get_graph(meta)
   print('Done.')
 
 if __name__ == "__main__":
-  main('bn-mouse-kasthuri-graph-v4')
+  main('power-1138-bus')

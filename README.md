@@ -6,7 +6,7 @@ Authors: [Maj Šavli](https://github.com/saullas), [Matjaž Mav](https://github.
 
 ## Links
 - [Notes](https://docs.google.com/document/d/1Sh1tYwuy0YUsRWrzMz64w29XQde2IqmYQOwlbM1QaHs/edit?usp=sharing)
-- [Report](https://www.overleaf.com/project/5eb6b766f85eb100019aec44)
+- [Report](https://www.overleaf.com/project/5ebd83d90b1f7d0001587f9d)
 
 ## Requirements
 ### Linux
