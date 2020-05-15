@@ -140,3 +140,4 @@ dmypy.json
 
 .env/*
 .tmp/*
+!.tmp/graphs.csv

@@ -7,6 +7,7 @@ import glob
 from typing import List
 
 import bs4
+import pandas as pd
 
 from src.scraper.metadata import Metadata
 from src.scraper.graph_parsers import read_edges, read_mtx
@@ -52,6 +53,21 @@ _NAN = {
 _GRAPH_PARSERS = {
   '.edges': read_edges,
   '.mtx': read_mtx,
+}
+
+_STATISTICS_MAPPINGS = {
+  2: {'name': 'n', 'type': int},
+  3: {'name': 'm', 'type': int},
+  4: {'name': 'd_max', 'type': int},
+  5: {'name': 'd_avg', 'type': float},
+  6: {'name': 'r', 'type': float},
+  7: {'name': 't', 'type': int},
+  8: {'name': 't_avg', 'type': float},
+  9: {'name': 't_max', 'type': int},
+  10: {'name': 'k_avg', 'type': float},
+  11: {'name': 'k', 'type': float},
+  12: {'name': 'max_kcore', 'type': int},
+  13: {'name': 'wlb', 'type': int},
 }
 
 def _graph_parser_exists(file_path: str) -> bool:
@@ -165,3 +181,44 @@ def get_graph(metadata: Metadata, force: bool = False) -> nx.Graph:
   # Parse graph file
   print(f'Parsing graph from "{cache_path}"...')
   return _GRAPH_PARSERS[os.path.splitext(cache_path)[1]](cache_path)
+
+
+def get_list(force = False) -> pd.DataFrame:
+  """Download list of networks from the Network Repository and return it as Pandas dataframe."""
+
+  cache_path = os.path.join(_TMP_DIR, 'graphs.csv')
+  if os.path.exists(cache_path) and not force:
+    return pd.read_csv(cache_path)
+
+  url = f'{_BASE_URL}/networks.php'
+  res = requests.get(url)
+  if res.status_code >= 400:
+    raise Exception(f'Failed to load page "{url}" with status {res.status_code}')
+  
+  parser = bs4.BeautifulSoup(res.text, 'html.parser')
+
+  table = []
+  for row_el in parser.select('table#myTable > tbody > tr'):
+    td = dict()
+    try:
+      for i, td_el in enumerate(row_el.select('td')):
+        if i == 0:
+          td['name'] = td_el.text.lstrip('\xa0 ')
+        elif i == 1:
+          td['category'] = td_el.text
+        elif i == 14:
+          td['download_size'] = int(td_el.attrs['class'][1].rstrip('}'))
+        elif i == 15:
+          td['download_url'] = td_el.select('a[href]')[0].attrs['href']
+        elif td_el.text != '-' and i in _STATISTICS_MAPPINGS:
+          key = _STATISTICS_MAPPINGS[i]['name']
+          value = _STATISTICS_MAPPINGS[i]['type'](td_el.attrs['class'][1].rstrip('}'))
+          td[key] = value
+      table.append(td)
+    except:
+      print(f'WARNING: Parsing error for the network {td.get("name", "/")}')
+
+  df = pd.DataFrame(table)
+  df.to_csv(cache_path)
+
+  return df
