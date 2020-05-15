@@ -180,7 +180,11 @@ def get_graph(name: str, data_url: str, force: bool = False) -> nx.Graph:
 
   # Parse graph file
   print(f'Parsing graph from "{cache_path}"...')
-  return _GRAPH_PARSERS[os.path.splitext(cache_path)[1]](cache_path)
+  return read_graph(cache_path)
+
+
+def read_graph(graph_file: str) -> nx.Graph:
+  return _GRAPH_PARSERS[os.path.splitext(graph_file)[1]](graph_file)
 
 
 def get_list(force = False) -> pd.DataFrame:
@@ -219,6 +223,6 @@ def get_list(force = False) -> pd.DataFrame:
       print(f'WARNING: Parsing error for the network {td.get("name", "/")}')
 
   df = pd.DataFrame(table)
-  df.to_csv(cache_path)
+  df.to_csv(cache_path, index=False)
 
   return df

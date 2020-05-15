@@ -1,3 +1,5 @@
+import re
+
 import networkx as nx
 
 
@@ -9,20 +11,21 @@ def read_mtx(file_path: str) -> nx.Graph:
     skiped = False
 
     for l in f:
+      # skip blank lines
+      l = l.strip()
+      if l == '': continue
       # skip comments
-      if l.startswith('%') or l.startswith('#'): continue
+      if l[0] in ['#', '%']: continue
 
       # skip first non comment
       if not skiped:
         skiped = True
         continue
 
-      ijw = l.rstrip('\n').split()
-      if len(ijw) == 3:
-        i, j, w = ijw
-        G.add_edge(int(i), int(j), weight=float(w))
+      i, j, *tail = re.split(' |,', l)
+      if len(tail) == 1:
+        G.add_edge(int(i), int(j), weight=float(tail[0]))
       else:
-        i, j = ijw
         G.add_edge(int(i), int(j))
 
   return G
@@ -33,15 +36,16 @@ def read_edges(file_path: str) -> nx.Graph:
 
   with open(file_path, 'r') as f:
     for l in f:
+      # skip blank lines
+      l = l.strip()
+      if l == '': continue
       # skip comments
-      if l.startswith('%') or l.startswith('#'): continue
+      if l[0] in ['#', '%']: continue
 
-      ijw = l.rstrip('\n').split()
-      if len(ijw) == 3:
-        i, j, w = ijw
-        G.add_edge(int(i), int(j), weight=float(w))
+      i, j, *tail = re.split(' |,', l)
+      if len(tail) == 1:
+        G.add_edge(int(i), int(j), weight=float(tail[0]))
       else:
-        i, j = ijw
         G.add_edge(int(i), int(j))
 
   return G
