@@ -140,4 +140,6 @@ dmypy.json
 
 .env/*
 .tmp/*
-!.tmp/graphs.csv
+!.tmp/*.csv
+!.tmp/*.mtx
+!.tmp/*.edges

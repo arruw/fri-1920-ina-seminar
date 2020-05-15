@@ -3,7 +3,7 @@ from src.scraper.scraper import get_metadata, get_graph
 
 def main(network: str):
   meta = get_metadata(network)
-  get_graph(meta)
+  get_graph(meta.name, meta.data_url)
   print('Done.')
 
 if __name__ == "__main__":

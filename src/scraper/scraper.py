@@ -148,17 +148,17 @@ def get_metadata(name: str, force: bool = False) -> Metadata:
   return ret
 
 
-def get_graph(metadata: Metadata, force: bool = False) -> nx.Graph:
+def get_graph(name: str, data_url: str, force: bool = False) -> nx.Graph:
   """Get graph"""
-  zip_cache_path = os.path.join(_TMP_DIR, metadata.data_url.split('/')[-1])
-  cache_path = _resolve_graph_file(glob.glob(os.path.join(_TMP_DIR, f'{metadata.name}.*')))
+  zip_cache_path = os.path.join(_TMP_DIR, data_url.split('/')[-1])
+  cache_path = _resolve_graph_file(glob.glob(os.path.join(_TMP_DIR, f'{name}.*')))
 
   # Download zip file
   if not cache_path or force:
-    print(f'Downloading the network "{metadata.name}" [. = 1MB]: ', end='', flush=True)
-    res = requests.get(metadata.data_url, stream=True)
+    print(f'Downloading the network "{name}" [. = 1MB]: ', end='', flush=True)
+    res = requests.get(data_url, stream=True)
     if res.status_code >= 400:
-      raise Exception(f'Failed to load page "{url}" with status {res.status_code}')
+      raise Exception(f'Failed to load page "{data_url}" with status {res.status_code}')
     with open(zip_cache_path, 'wb') as fd:
       for chunk in res.iter_content(chunk_size=1000000):
         print(f'.', end='', flush=True)
@@ -170,9 +170,9 @@ def get_graph(metadata: Metadata, force: bool = False) -> nx.Graph:
     with zipfile.ZipFile(zip_cache_path) as zfd:
       graph_file = _resolve_graph_file(zfd.namelist())
       if not graph_file:
-        raise Exception(f'Failed to resolve graph file for the network "{metadata.name}"')
+        raise Exception(f'Failed to resolve graph file for the network "{name}"')
       zfd.extract(f'{graph_file}', path=_TMP_DIR)
-      cache_path = os.path.join(_TMP_DIR, f'{metadata.name}{os.path.splitext(graph_file)[1]}')
+      cache_path = os.path.join(_TMP_DIR, f'{name}{os.path.splitext(graph_file)[1]}')
       os.rename(os.path.join(_TMP_DIR, os.path.basename(graph_file)), cache_path)
     
     # Cleanup
