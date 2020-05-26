@@ -38,12 +38,6 @@ def compute_indexes(G: nx.Graph, method, negative, positive):
 		return nx.adamic_adar_index(G,negative), nx.adamic_adar_index(G,positive)
 	elif method == 'preferential_attachment':
 		return nx.preferential_attachment(G,negative), nx.preferential_attachment(G,positive)
-	elif method == 'cn_soundarajan_hopcroft':
-		return nx.cn_soundarajan_hopcroft(G,negative), nx.cn_soundarajan_hopcroft(G,positive)
-	elif method == 'ra_index_soundarajan_hopcroft':
-		return nx.ra_index_soundarajan_hopcroft(G,negative), nx.ra_index_soundarajan_hopcroft(G,positive)
-	elif method == 'within_inter_cluster':
-		return nx.within_inter_cluster(G,negative), nx.within_inter_cluster(G,positive)
 	else:
 		raise NameError('The given method is not supported')
 
@@ -81,7 +75,7 @@ networks_df = pd.read_csv('data/precomputed.csv')
 link_prediction_methods = ['resource_allocation_index',
 													'jaccard_coefficient',
 													'adamic_adar_index',
-													'preferential_attachment',]
+													'preferential_attachment']
 
 
 
