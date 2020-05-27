@@ -13,6 +13,22 @@ from src.scraper.scraper import get_graph
 
 N_OF_RUNS = 5
 
+
+def compute_negative_and_positive_pairs(G: nx.Graph):
+	m = G.number_of_edges()
+	sampleSize = int(m * 0.1)
+	
+	unconnected = np.array(unconnected_pairs(G))
+	indexes = np.random.choice(len(unconnected), size=sampleSize, replace=False)
+	negative = unconnected[indexes]
+	
+	connected = np.array(list(G.edges))
+	indexes = np.random.choice(len(connected), size=sampleSize, replace=False)
+	positive = connected[indexes]
+	for edge in positive:
+		G.remove_edge(edge[0],edge[1])
+	return sampleSize, negative, positive
+
 def compute_auc(indexes, m, sampleSize):
 	m1, m2 = 0, 0
 	indexes = (list(indexes[0]), list(indexes[1])) # cast from generator to list
@@ -38,6 +54,9 @@ def compute_indexes(G: nx.Graph, method, negative, positive):
 		return nx.adamic_adar_index(G,negative), nx.adamic_adar_index(G,positive)
 	elif method == 'preferential_attachment':
 		return nx.preferential_attachment(G,negative), nx.preferential_attachment(G,positive)
+	elif method == 'sorensen_neighbours':
+		return ([(u, v, sorensen_index(G, u, v)) for u, v in negative],
+					  [(u, v, sorensen_index(G, u, v)) for u, v in positive])
 	elif method == 'community':
 		c = louvain(G)
 		commLabels = c.communities
@@ -47,27 +66,7 @@ def compute_indexes(G: nx.Graph, method, negative, positive):
 	else:
 		raise NameError('The given method is not supported')
 
-def unconnected_pairs(G: nx.Graph):
-	all_pairs = set(combinations_with_replacement(G.nodes, 2))		
-	return list(all_pairs - set(G.edges))
 
-def compute_negative_and_positive_pairs(G: nx.Graph):
-	m = G.number_of_edges()
-	sampleSize = int(m * 0.1)
-	
-	unconnected = np.array(unconnected_pairs(G))
-	indexes = np.random.choice(len(unconnected), size=sampleSize, replace=False)
-	negative = unconnected[indexes]
-	
-	connected = np.array(list(G.edges))
-	indexes = np.random.choice(len(connected), size=sampleSize, replace=False)
-	positive = connected[indexes]
-	for edge in positive:
-		G.remove_edge(edge[0],edge[1])
-	return sampleSize, negative, positive
-
-def connected(G: nx.Graph, u, v):
-	return u in G.neighbors(v)
 
 def community_index(G: nx.Graph, i, j, commLabels, comms):
 	ci, cj = comms[i][0], comms[j][0]
@@ -77,18 +76,36 @@ def community_index(G: nx.Graph, i, j, commLabels, comms):
 	nc, mc = len(C), len(nx.subgraph(G,C))
 	return mc/(factorial(nc)/(2*factorial(nc-2)))
 
+def sorensen_index(G: nx.Graph, i, j):
+	i_neighbourhood = set(G.neighbors(i))
+	j_neighbourhood = set(G.neighbors(j))
+	degreeSum = G.degree(i) + G.degree(j)
+	if degreeSum == 0:
+		return 0
+	return len(i_neighbourhood.intersection(j_neighbourhood))/degreeSum
+
+
+def unconnected_pairs(G: nx.Graph):
+	all_pairs = set(combinations_with_replacement(G.nodes, 2))		
+	return list(all_pairs - set(G.edges))
+
+def connected(G: nx.Graph, u, v):
+	return u in G.neighbors(v)
+
 def remove_weights(G: nx.Graph):
 	if nx.is_weighted(G):
 		for edge in G.edges:
 			del G.edges[edge]['weight']
 
+
 networks_df = pd.read_csv('data/precomputed.csv')
+
 link_prediction_methods = ['resource_allocation',
 													'jaccard_coefficient',
 													'adamic_adar',
 													'preferential_attachment',
-													'community']
-
+													'community',
+													'sorensen_neighbours']
 
 
 for index, row in networks_df.iterrows():
