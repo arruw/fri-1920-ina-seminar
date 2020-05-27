@@ -97,13 +97,14 @@ def remove_weights(G: nx.Graph):
 
 
 networks_df = pd.read_csv('data/precomputed.csv')
+classes = []
 
 link_prediction_methods = ['resource_allocation',
-													'jaccard_coefficient',
-													'adamic_adar',
-													'preferential_attachment',
-													'community',
-													'sorensen_neighbours']
+													 'jaccard_coefficient',
+													 'adamic_adar',
+													 'preferential_attachment',
+													 'community',
+													 'sorensen_neighbours']
 
 
 for index, row in networks_df.iterrows():
@@ -119,7 +120,7 @@ for index, row in networks_df.iterrows():
 		G = G_original.copy()
 		sampleSize, negative, positive = compute_negative_and_positive_pairs(G)
 		
-		for index,method in enumerate(link_prediction_methods):
+		for method in link_prediction_methods:
 			successful = False
 			while not successful:
 				try:
@@ -131,5 +132,6 @@ for index, row in networks_df.iterrows():
 					G = G_original.copy()
 					sampleSize, negative, positive = compute_negative_and_positive_pairs(G)
 		
-	print(f'Network number {index}, scores: {[(method,round(score,3)) for method,score in scores.items()]} \n')
-	
+	print(f'Network {index}, scores: {[(method,round(score,3)) for method,score in scores.items()]} \n')
+	aucs = list(scores.values())
+	classes.append(aucs.index(max(aucs))) # append index of the best value as class
