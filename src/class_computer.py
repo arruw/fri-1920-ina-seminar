@@ -29,21 +29,19 @@ def compute_negative_and_positive_pairs(G: nx.Graph):
 		G.remove_edge(edge[0],edge[1])
 	return sampleSize, negative, positive
 
-def compute_auc(indexes, m, sampleSize):
+def compute_auc(G:nx.Graph, m, method, negative, postivie, sampleSize):
+	neg_indexes, pos_indexes = compute_indexes(G, method, negative, positive)
 	m1, m2 = 0, 0
-	indexes = (list(indexes[0]), list(indexes[1])) # cast from generator to list
+	neg_indexes, pos_indexes = list(neg_indexes), list(pos_indexes)
+	
 	for i in range(sampleSize):
-		_,_,randLNs = choice(indexes[0])
-		_,_,randLPs = choice(indexes[1])
-		if randLPs > randLNs:
+		_,_,rand_neg = choice(neg_indexes)
+		_,_,rand_pos = choice(pos_indexes)
+		if rand_pos > rand_neg:
 			m1 += 1
-		elif randLPs == randLNs:
+		elif rand_pos == rand_neg:
 			m2 += 1
 	return (m1+m2/2)/(m/10)
-
-def evaluate_link_prediction_method(G: nx.Graph, m, method, negative, positive, sampleSize):
-	indexes = compute_indexes(G, method, negative, positive)
-	return compute_auc(indexes, m, sampleSize)
 
 def compute_indexes(G: nx.Graph, method, negative, positive):
 	if method == 'resource_allocation':
@@ -109,28 +107,28 @@ link_prediction_methods = ['resource_allocation',
 
 
 for index, row in networks_df.iterrows():
-	originalG = get_graph(row['name'], row['download_url'])
-	remove_weights(originalG)
+	G_original = get_graph(row['name'], row['download_url'])
+	remove_weights(G_original)
+	
 	# average scores
 	scores = {method: 0 for method in link_prediction_methods}
-	m = originalG.number_of_edges()
+	m = G_original.number_of_edges()
 	
 	for run in range(N_OF_RUNS):
 		print(f'------- Run {run} -------')
-		G = originalG.copy()
+		G = G_original.copy()
 		sampleSize, negative, positive = compute_negative_and_positive_pairs(G)
 		
-		for method in link_prediction_methods:
+		for index,method in enumerate(link_prediction_methods):
 			successful = False
 			while not successful:
 				try:
-					scores[method] += evaluate_link_prediction_method(G, m, method, negative, positive, sampleSize) / N_OF_RUNS
+					scores[method] += compute_auc(G, m, method, negative, positive, sampleSize) / N_OF_RUNS
 					successful = True
 				except Exception as inst:
-					print(f'{method} not successful...')
-					print(type(inst),inst.args)
+					print(f'{method} not successful. {type(inst)}, {inst.args}')
 					# we compute negative and positive pairs again
-					G = originalG.copy()
+					G = G_original.copy()
 					sampleSize, negative, positive = compute_negative_and_positive_pairs(G)
 		
 	print(f'Network number {index}, scores: {[(method,round(score,3)) for method,score in scores.items()]} \n')
