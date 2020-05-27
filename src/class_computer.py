@@ -4,11 +4,12 @@ import numpy as np
 
 from cdlib.algorithms import leiden, louvain
 
-from math import factorial, isnan
+from math import factorial, isnan, log
 from random import choice
-from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement, combinations
 
 from src.scraper.scraper import get_graph
+
 
 def compute_class(G: nx.Graph):
 	# average scores
@@ -56,6 +57,9 @@ def compute_negative_and_positive_pairs(G: nx.Graph):
 	sampleSize = int(m * 0.1)
 	
 	unconnected = np.array(unconnected_pairs(G))
+	if len(unconnected) < sampleSize:
+		sampleSize = len(unconnected)
+
 	indexes = np.random.choice(len(unconnected), size=sampleSize, replace=False)
 	negative = unconnected[indexes]
 	
@@ -87,7 +91,7 @@ def compute_indexes(G: nx.Graph, method, negative, positive):
 	else:
 		raise NameError('The given method is not supported')
 
-
+		
 
 def community_index(G: nx.Graph, i, j, commLabels, comms):
 	ci, cj = comms[i][0], comms[j][0]
@@ -108,7 +112,7 @@ def sorensen_index(G: nx.Graph, i, j):
 
 
 def unconnected_pairs(G: nx.Graph):
-	all_pairs = set(combinations_with_replacement(G.nodes, 2))		
+	all_pairs = set(combinations(G.nodes, 2))		
 	return list(all_pairs - set(G.edges))
 
 def connected(G: nx.Graph, u, v):
@@ -128,18 +132,28 @@ link_prediction_methods = ['resource_allocation',
 													 'sorensen_neighbours']
 
 
-N_OF_RUNS = 5
+N_OF_RUNS = 5 # how many times we compute aucs
 OVERWRITE = False # if we compute and overwrite class where its already been computed
 SAVE_RATE = 20 # save every n networks
 
 if __name__ == '__main__':
 	networks_df = pd.read_csv('data/precomputed_with_classes.csv')
+	
+	if OVERWRITE:
+		networks_df['class'] = np.nan
 
+	# for every network compute best link prediction method
 	for index, row in networks_df.iterrows():
-		if isnan(row['Class']) or OVERWRITE:
+		if isnan(row['class']) or OVERWRITE:
 			G = get_graph(row['name'], row['download_url'])
+			
+			# self loops and weights not allowed
 			remove_weights(G)
+			G.remove_edges_from(list(nx.selfloop_edges(G)))
+
 			classVariable = compute_class(G)
-			networks_df.iloc[index, networks_df.columns.get_loc('Class')] = classVariable
-		if index % SAVE_RATE == 0: # save every 20 networks
+			networks_df.iloc[index, networks_df.columns.get_loc('class')] = classVariable
+		
+		# save every 20 networks or when over
+		if index % SAVE_RATE == 0 or index == networks_df.shape[0] - 1:
 			networks_df.to_csv('data/precomputed_with_classes.csv', index=False)
