@@ -2,7 +2,7 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 
-from cdlib.algorithms import leiden
+from cdlib.algorithms import leiden, louvain
 
 from math import factorial
 from random import choice
@@ -30,14 +30,20 @@ def evaluate_link_prediction_method(G: nx.Graph, m, method, negative, positive, 
 	return compute_auc(indexes, m, sampleSize)
 
 def compute_indexes(G: nx.Graph, method, negative, positive):
-	if method == 'resource_allocation_index':
+	if method == 'resource_allocation':
 		return nx.resource_allocation_index(G,negative), nx.resource_allocation_index(G,positive)
 	elif method == 'jaccard_coefficient':
 		return nx.jaccard_coefficient(G,negative), nx.jaccard_coefficient(G,positive)
-	elif method == 'adamic_adar_index':
+	elif method == 'adamic_adar':
 		return nx.adamic_adar_index(G,negative), nx.adamic_adar_index(G,positive)
 	elif method == 'preferential_attachment':
 		return nx.preferential_attachment(G,negative), nx.preferential_attachment(G,positive)
+	elif method == 'community':
+		c = louvain(G)
+		commLabels = c.communities
+		comms = c.to_node_community_map()
+		return ([(u, v, community_index(G, u, v, commLabels, comms)) for u, v in negative],
+					  [(u, v, community_index(G, u, v, commLabels, comms)) for u, v in positive])
 	else:
 		raise NameError('The given method is not supported')
 
@@ -71,16 +77,23 @@ def community_index(G: nx.Graph, i, j, commLabels, comms):
 	nc, mc = len(C), len(nx.subgraph(G,C))
 	return mc/(factorial(nc)/(2*factorial(nc-2)))
 
+def remove_weights(G: nx.Graph):
+	if nx.is_weighted(G):
+		for edge in G.edges:
+			del G.edges[edge]['weight']
+
 networks_df = pd.read_csv('data/precomputed.csv')
-link_prediction_methods = ['resource_allocation_index',
+link_prediction_methods = ['resource_allocation',
 													'jaccard_coefficient',
-													'adamic_adar_index',
-													'preferential_attachment']
+													'adamic_adar',
+													'preferential_attachment',
+													'community']
 
 
 
 for index, row in networks_df.iterrows():
 	originalG = get_graph(row['name'], row['download_url'])
+	remove_weights(originalG)
 	# average scores
 	scores = {method: 0 for method in link_prediction_methods}
 	m = originalG.number_of_edges()
@@ -96,11 +109,12 @@ for index, row in networks_df.iterrows():
 				try:
 					scores[method] += evaluate_link_prediction_method(G, m, method, negative, positive, sampleSize) / N_OF_RUNS
 					successful = True
-				except: # division by 0 when computing adamic adar
-					print(method, 'not successful...')
+				except Exception as inst:
+					print(f'{method} not successful...')
+					print(type(inst),inst.args)
 					# we compute negative and positive pairs again
 					G = originalG.copy()
 					sampleSize, negative, positive = compute_negative_and_positive_pairs(G)
 		
-	print(f'Network number {index}, scores: {[(method,round(score,3)) for method,score in scores.items()]}')
+	print(f'Network number {index}, scores: {[(method,round(score,3)) for method,score in scores.items()]} \n')
 	
