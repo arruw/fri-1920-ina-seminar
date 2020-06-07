@@ -160,4 +160,4 @@ if __name__ == '__main__':
 		
 		# save every 20 networks or when over
 		if index % SAVE_RATE == 0 or index == networks_df.shape[0] - 1:
-			networks_df.to_csv('data/precomputed_with_classes.csv', index=False)
+			networks_df.to_csv('data/precomputed_with_classes_3.csv', index=False)
