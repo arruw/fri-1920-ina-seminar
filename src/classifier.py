@@ -18,25 +18,19 @@ import seaborn as sns
 import numpy as np
 
 if __name__ == '__main__':
-  dataset = pd.read_csv('data/precomputed_with_classes.csv')
+  dataset = pd.read_csv('data/precomputed_with_classes_2.csv')
   target = dataset['class'].astype(int)
+  
+  cor = dataset.corr()
+  cor_target = abs(cor['class'])
+  relevant_features = cor_target[cor_target > 0.02]
+  #print(relevant_features)
+
   dataset.drop(['r','name','download_url'], 1, inplace=True)
   dataset = pd.get_dummies(dataset) # s tem binariziramo vse atribute
   dataset.drop(dataset.columns.difference(['m','k_avg','C_avg','C','category_misc','category_protein']), 1, inplace=True)
-  print(dataset)
-
-
-  plt.figure(figsize=(12,10))
-  cor = dataset.corr()
-  sns.heatmap(cor, annot=True, cmap=plt.cm.Reds)
-  #plt.show()
-
-  #cor_target = abs(cor['class'])
-  
-  #relevant_features = cor_target[cor_target > 0.05]
 
   X_train, X_test, y_train, y_test = train_test_split(dataset,target,test_size=0.2,random_state=42)
-
   folds = 5
 
   model = SVC()
@@ -45,14 +39,14 @@ if __name__ == '__main__':
   scores = cross_val_score(model, dataset, target, cv=folds)
   print("SVC cross: ", mean(scores))
 
-  model5 = neighbors.KNeighborsClassifier()
-  model5.fit(X_train, y_train)
-  print("KNN: ",model5.score(X_test,y_test))
-  scores = cross_val_score(model5, dataset, target, cv=folds)
+  model2 = neighbors.KNeighborsClassifier()
+  model2.fit(X_train, y_train)
+  print("KNN: ",model2.score(X_test,y_test))
+  scores = cross_val_score(model2, dataset, target, cv=folds)
   print("KNN cross: ",mean(scores))
 
-  model = RandomForestClassifier()
-  model.fit(X_train, y_train)
-  print("Random Forest: ",model.score(X_test, y_test))
-  scores = cross_val_score(model, dataset, target, cv=folds)
+  model3 = RandomForestClassifier()
+  model3.fit(X_train, y_train)
+  print("Random Forest: ",model3.score(X_test, y_test))
+  scores = cross_val_score(model3, dataset, target, cv=folds)
   print("Random Forest cross: ", mean(scores))
