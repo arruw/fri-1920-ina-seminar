@@ -125,8 +125,8 @@ def remove_weights(G: nx.Graph):
 
 
 link_prediction_methods = ['resource_allocation',
+													 'adamic_adar'
 													 'jaccard_coefficient',
-													 'adamic_adar',
 													 'preferential_attachment',
 													 'community',
 													 'sorensen_neighbours']
