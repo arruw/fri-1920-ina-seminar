@@ -36,7 +36,7 @@ def compute_class(G: nx.Graph):
 	print(f'Network {index}, scores: {[(method,round(score,3)) for method,score in scores.items()]} \n')
 	# return class - index of the best method
 	aucs = list(scores.values())
-	return aucs.index(max(aucs))
+	return (aucs, aucs.index(max(aucs)))
 
 def compute_auc(G:nx.Graph, m, method, negative, positive, sampleSize):
 	neg_indexes, pos_indexes = compute_indexes(G, method, negative, positive)
@@ -133,7 +133,7 @@ link_prediction_methods = ['resource_allocation',
 
 
 N_OF_RUNS = 5 # how many times we compute aucs
-OVERWRITE = False # if we compute and overwrite class where its already been computed
+OVERWRITE = True # if we compute and overwrite class where its already been computed
 SAVE_RATE = 20 # save every n networks
 
 if __name__ == '__main__':
@@ -141,6 +141,8 @@ if __name__ == '__main__':
 	
 	if OVERWRITE:
 		networks_df['class'] = np.nan
+		for lpm in link_prediction_methods:
+			networks_df[lpm] = np.nan
 
 	# for every network compute best link prediction method
 	for index, row in networks_df.iterrows():
@@ -151,8 +153,10 @@ if __name__ == '__main__':
 			remove_weights(G)
 			G.remove_edges_from(list(nx.selfloop_edges(G)))
 
-			classVariable = compute_class(G)
+			aucs, classVariable = compute_class(G)
 			networks_df.iloc[index, networks_df.columns.get_loc('class')] = classVariable
+			for lpmi, lpm in enumerate(link_prediction_methods):
+				networks_df.iloc[index, networks_df.columns.get_loc(lpm)] = aucs[lpmi]
 		
 		# save every 20 networks or when over
 		if index % SAVE_RATE == 0 or index == networks_df.shape[0] - 1:
