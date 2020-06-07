@@ -125,7 +125,7 @@ def remove_weights(G: nx.Graph):
 
 
 link_prediction_methods = ['resource_allocation',
-													 'adamic_adar'
+													#  'adamic_adar'
 													 'jaccard_coefficient',
 													 'preferential_attachment',
 													 'community',
@@ -133,7 +133,7 @@ link_prediction_methods = ['resource_allocation',
 
 
 N_OF_RUNS = 5 # how many times we compute aucs
-OVERWRITE = True # if we compute and overwrite class where its already been computed
+OVERWRITE = False # if we compute and overwrite class where its already been computed
 SAVE_RATE = 20 # save every n networks
 
 if __name__ == '__main__':
