@@ -138,7 +138,7 @@ SAVE_RATE = 20 # save every n networks
 
 if __name__ == '__main__':
 	networks_df = pd.read_csv('data/precomputed_with_classes.csv')
-	
+
 	if OVERWRITE:
 		networks_df['class'] = np.nan
 		for lpm in link_prediction_methods:
@@ -157,7 +157,7 @@ if __name__ == '__main__':
 			networks_df.iloc[index, networks_df.columns.get_loc('class')] = classVariable
 			for lpmi, lpm in enumerate(link_prediction_methods):
 				networks_df.iloc[index, networks_df.columns.get_loc(lpm)] = aucs[lpmi]
-		
+
 		# save every 20 networks or when over
 		if index % SAVE_RATE == 0 or index == networks_df.shape[0] - 1:
-			networks_df.to_csv('data/precomputed_with_classes_3.csv', index=False)
+			networks_df.to_csv('data/precomputed_with_classes_4.csv', index=False)

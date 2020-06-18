@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.feature_selection import VarianceThreshold
-from statistics import mean
+from statistics import mean, stdev
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.ensemble import AdaBoostClassifier
@@ -16,37 +16,58 @@ from sklearn.naive_bayes import GaussianNB
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from random import randint
+
+best_avg_method = 0 # resource alloc best avg method
+classifiers = ['SVC', 'KNN', 'RNDF']
+N_OF_RUNS = 10
+
+def compute_ca(aucs,X_test,model):
+  rowValues = X_test.to_numpy()
+  predictions = []
+  for (index,_),rowData in zip(X_test.iterrows(),rowValues):
+    predictions.append((index,model.predict(rowData.reshape(1,-1))[0])) # row index and class
+  correct = 0
+  n = len(predictions)
+  for index,bestMethod in predictions:
+    if aucs[index][bestMethod] >= aucs[index][best_avg_method]:
+      correct += 1
+  return correct/n
+
+def info(runScores):
+  for classifier,scores in zip(classifiers,runScores):
+    print(f'{classifier} mean CA: {round(mean(scores)*100,3)}, stdev: {round(stdev(scores)*100,3)}')
 
 if __name__ == '__main__':
-  dataset = pd.read_csv('data/precomputed_with_classes_2.csv')
+  dataset = pd.read_csv('data/precomputed_with_classes_3.csv')
   target = dataset['class'].astype(int)
   
-  cor = dataset.corr()
-  cor_target = abs(cor['class'])
-  relevant_features = cor_target[cor_target > 0.02]
+  #cor = dataset.corr()
+  #cor_target = abs(cor['class'])
+  #relevant_features = cor_target[cor_target > 0.1]
   #print(relevant_features)
-
+  
   dataset.drop(['r','name','download_url'], 1, inplace=True)
+  aucs = dataset.iloc[:,-5:].to_numpy()
   dataset = pd.get_dummies(dataset) # s tem binariziramo vse atribute
   dataset.drop(dataset.columns.difference(['m','k_avg','C_avg','C','category_misc','category_protein']), 1, inplace=True)
 
-  X_train, X_test, y_train, y_test = train_test_split(dataset,target,test_size=0.2,random_state=42)
-  folds = 5
+  scores = [[] for i in range(len(classifiers))] # scores for every method and run
 
-  model = SVC()
-  model.fit(X_train, y_train)
-  print("SVC: ", model.score(X_test, y_test))
-  scores = cross_val_score(model, dataset, target, cv=folds)
-  print("SVC cross: ", mean(scores))
+  for run in range(N_OF_RUNS):
+    print(f'Run {run}/{N_OF_RUNS}')
+    X_train, X_test, y_train, y_test = train_test_split(dataset,target,test_size=0.2,random_state=randint(0,10000))
 
-  model2 = neighbors.KNeighborsClassifier()
-  model2.fit(X_train, y_train)
-  print("KNN: ",model2.score(X_test,y_test))
-  scores = cross_val_score(model2, dataset, target, cv=folds)
-  print("KNN cross: ",mean(scores))
+    model = SVC()
+    model.fit(X_train, y_train)
+    scores[0].append(compute_ca(aucs,X_test,model))
 
-  model3 = RandomForestClassifier()
-  model3.fit(X_train, y_train)
-  print("Random Forest: ",model3.score(X_test, y_test))
-  scores = cross_val_score(model3, dataset, target, cv=folds)
-  print("Random Forest cross: ", mean(scores))
+    model2 = neighbors.KNeighborsClassifier()
+    model2.fit(X_train, y_train)
+    scores[1].append(compute_ca(aucs,X_test,model2))
+
+    model3 = RandomForestClassifier(n_estimators=100)
+    model3.fit(X_train, y_train)
+    scores[2].append(compute_ca(aucs,X_test,model3))
+
+  info(scores)
