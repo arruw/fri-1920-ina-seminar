@@ -4,23 +4,20 @@ from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn import preprocessing, neighbors
 from sklearn.ensemble import BaggingClassifier
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.feature_selection import VarianceThreshold
 from statistics import mean, stdev
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import plot_confusion_matrix
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.naive_bayes import GaussianNB
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from random import randint
 
 best_avg_method = 0 # resource alloc best avg method
-classifiers = ['SVC', 'KNN', 'RNDF']
-N_OF_RUNS = 10
+classifiers = ['SVC', 'KNN', 'RNDF', 'LGRG']
+N_OF_RUNS = 10 # number of times we build the model
 
 def compute_ca(aucs,X_test,model):
   rowValues = X_test.to_numpy()
@@ -62,12 +59,16 @@ if __name__ == '__main__':
     model.fit(X_train, y_train)
     scores[0].append(compute_ca(aucs,X_test,model))
 
-    model2 = neighbors.KNeighborsClassifier()
+    model2 = neighbors.KNeighborsClassifier(n_neighbors=3)
     model2.fit(X_train, y_train)
     scores[1].append(compute_ca(aucs,X_test,model2))
 
     model3 = RandomForestClassifier(n_estimators=100)
     model3.fit(X_train, y_train)
     scores[2].append(compute_ca(aucs,X_test,model3))
+
+    model4 = LogisticRegression(max_iter=100000,multi_class='multinomial')
+    model4.fit(X_train, y_train)
+    scores[3].append(compute_ca(aucs,X_test,model4))
 
   info(scores)
