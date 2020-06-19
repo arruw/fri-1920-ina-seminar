@@ -47,12 +47,12 @@ if __name__ == '__main__':
   dataset.drop(['r','name','download_url']+link_prediction_methods, 1, inplace=True)
   dataset = pd.get_dummies(dataset) # s tem binariziramo vse atribute
 
-  """ cor = dataset.corr()
+  cor = dataset.corr()
   cor_target = abs(cor['class'])
-  relevant_features = cor_target[cor_target > 0.04]
-  print(relevant_features) """
+  relevant_features = cor_target[cor_target > 0.03]
+  print(relevant_features)
 
-  selected_columns = ['density','k_avg','k_max','t','t_max','C_avg','C','category_ia']
+  selected_columns = ['C_avg']
   dataset.drop(dataset.columns.difference(selected_columns), 1, inplace=True)
 
   scores = [[] for i in range(len(classifiers))] # scores for every method and run
