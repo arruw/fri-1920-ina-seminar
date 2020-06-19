@@ -13,10 +13,15 @@ from sklearn.metrics import plot_confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from random import randint
+from random import randint, seed
 
 best_avg_method = 0 # resource alloc best avg method
-classifiers = ['SVC', 'KNN', 'RNDF', 'LGRG']
+classifiers = ['SVC', 'KNN', 'RNDF']
+link_prediction_methods = ['resource_allocation',
+													 'jaccard_coefficient',
+													 'preferential_attachment',
+													 'community',
+													 'sorensen_neighbours']
 N_OF_RUNS = 10 # number of times we build the model
 
 def compute_ca(aucs,X_test,model):
@@ -38,18 +43,20 @@ def info(runScores):
 if __name__ == '__main__':
   dataset = pd.read_csv('data/precomputed_with_classes_3.csv')
   target = dataset['class'].astype(int)
-  
-  #cor = dataset.corr()
-  #cor_target = abs(cor['class'])
-  #relevant_features = cor_target[cor_target > 0.1]
-  #print(relevant_features)
-  
-  dataset.drop(['r','name','download_url'], 1, inplace=True)
   aucs = dataset.iloc[:,-5:].to_numpy()
+  dataset.drop(['r','name','download_url']+link_prediction_methods, 1, inplace=True)
   dataset = pd.get_dummies(dataset) # s tem binariziramo vse atribute
-  dataset.drop(dataset.columns.difference(['m','k_avg','C_avg','C','category_misc','category_protein']), 1, inplace=True)
+
+  """ cor = dataset.corr()
+  cor_target = abs(cor['class'])
+  relevant_features = cor_target[cor_target > 0.04]
+  print(relevant_features) """
+
+  selected_columns = ['density','k_avg','k_max','t','t_max','C_avg','C','category_ia']
+  dataset.drop(dataset.columns.difference(selected_columns), 1, inplace=True)
 
   scores = [[] for i in range(len(classifiers))] # scores for every method and run
+  seed(42) # for reproducability
 
   for run in range(N_OF_RUNS):
     print(f'Run {run}/{N_OF_RUNS}')
@@ -67,8 +74,8 @@ if __name__ == '__main__':
     model3.fit(X_train, y_train)
     scores[2].append(compute_ca(aucs,X_test,model3))
 
-    model4 = LogisticRegression(max_iter=100000,multi_class='multinomial')
+    """ model4 = LogisticRegression(max_iter=100000,multi_class='multinomial')
     model4.fit(X_train, y_train)
-    scores[3].append(compute_ca(aucs,X_test,model4))
+    scores[3].append(compute_ca(aucs,X_test,model4)) """
 
   info(scores)
