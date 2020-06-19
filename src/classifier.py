@@ -45,12 +45,12 @@ if __name__ == '__main__':
   target = dataset['class'].astype(int)
   aucs = dataset.iloc[:,-5:].to_numpy()
   dataset.drop(['r','name','download_url']+link_prediction_methods, 1, inplace=True)
-  dataset = pd.get_dummies(dataset) # s tem binariziramo vse atribute
+  dataset = pd.get_dummies(dataset) # one hot encode categorical attributes
 
   cor = dataset.corr()
   cor_target = abs(cor['class'])
   relevant_features = cor_target[cor_target > 0.03]
-  print(relevant_features)
+  #print(relevant_features)
 
   selected_columns = ['C_avg']
   dataset.drop(dataset.columns.difference(selected_columns), 1, inplace=True)
@@ -73,9 +73,5 @@ if __name__ == '__main__':
     model3 = RandomForestClassifier(n_estimators=100)
     model3.fit(X_train, y_train)
     scores[2].append(compute_ca(aucs,X_test,model3))
-
-    """ model4 = LogisticRegression(max_iter=100000,multi_class='multinomial')
-    model4.fit(X_train, y_train)
-    scores[3].append(compute_ca(aucs,X_test,model4)) """
 
   info(scores)
